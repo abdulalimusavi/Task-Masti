@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bhool Maaaat Jana</title>
+
+<!-- SEO -->
+<meta name="description" content="DEV//TASKS is a terminal-flavored task console for developers. Track commits, ship tasks, set due-date reminders, and stay on top of your build progress with a sleek cyberpunk UI.">
+<meta name="keywords" content="task manager, to-do app, developer tools, task tracker, productivity console, dev tasks, terminal ui todo">
+<meta name="author" content="Abdul Ali Mooavi">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://example.com/dev-tasks">
+
+<!-- Open Graph / Social -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="DEV//TASKS — Terminal-Style Developer To-Do Console">
+<meta property="og:description" content="A terminal-flavored task console for busy developers. Commit tasks, track build progress, and get reminded before deadlines slip.">
+<meta property="og:site_name" content="DEV//TASKS">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DEV//TASKS — Terminal-Style Developer To-Do Console">
+<meta name="twitter:description" content="Track commits, ship tasks, and get due-date reminders in a cyberpunk-themed task console.">
+
+<!-- Favicon (inline SVG, no external file needed) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%2305070a'/%3E%3Ctext x='50' y='66' font-size='58' text-anchor='middle' fill='%235ff0ff' font-family='monospace'%3E%3C/%3E%3C/text%3E%3C/svg%3E">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+  <div class="bg-circuit"></div>
+  <div class="bg-scanlines"></div>
+  <div class="bg-vignette"></div>
+  <canvas id="fx-canvas"></canvas>
+  <div class="screen-flash" id="screenFlash"></div>
+
+  <button class="mute-toggle" id="muteBtn" title="Toggle sound">🔊</button>
+
+  <main class="app">
+
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-tag">SYSTEM ONLINE</div>
+        <h1 class="brand-title">Task<span class="accent">//</span>Masti<span class="blink">_</span></h1>
+        <p class="brand-sub">A task console for busy people's. Every commit lights up the board.</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-num" id="statTotal">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num accent" id="statActive">0</div>
+          <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num ok" id="statDone">0</div>
+          <div class="stat-label">Shipped</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="progress-wrap">
+      <div class="progress-top">
+        <span>BUILD PROGRESS</span>
+        <span class="val" id="progressLabel">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </section>
+
+    <section class="composer">
+      <div class="composer-titlebar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="path">~/tasks/new_task.task</span>
+      </div>
+
+      <div class="composer-row">
+        <div class="input-group" style="flex:2 1 320px;">
+          <label for="taskTitle">Task</label>
+          <input class="field" id="taskTitle" type="text" placeholder="e.g. Refactor auth middleware" maxlength="120">
+        </div>
+        <div class="input-group">
+          <label for="taskDue">Due date</label>
+          <input class="field" id="taskDue" type="date">
+        </div>
+        <div class="input-group">
+          <label for="taskTag">Tag</label>
+          <input class="field" id="taskTag" type="text" placeholder="frontend, bug, infra…" maxlength="24">
+        </div>
+      </div>
+
+      <div class="composer-row">
+        <div class="input-group">
+          <label for="taskNote">Notes (optional)</label>
+          <textarea class="field" id="taskNote" rows="1" placeholder="Add details, links, or context…" maxlength="280"></textarea>
+        </div>
+        <div class="input-group">
+          <label for="taskContact">Reminder contact — email or phone (optional)</label>
+          <input class="field" id="taskContact" type="text" placeholder="e.g. you@example.com or +92 300 1234567" maxlength="120">
+        </div>
+      </div>
+
+      <div class="composer-row bottom">
+        <div class="input-group" style="flex:0 0 auto;">
+          <label>Priority</label>
+          <div class="priority-picker" id="priorityPicker">
+            <button type="button" class="chip" data-p="low"><span class="pip"></span>Low</button>
+            <button type="button" class="chip active" data-p="mid"><span class="pip"></span>Mid</button>
+            <button type="button" class="chip" data-p="high"><span class="pip"></span>High</button>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary" id="addBtn">⚡ Commit Task</button>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <div class="filters" id="filters">
+        <button class="filter-btn active" data-f="all">All</button>
+        <button class="filter-btn" data-f="active">Active</button>
+        <button class="filter-btn" data-f="done">Shipped</button>
+        <button class="filter-btn" data-f="high">High Priority</button>
+      </div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="grep tasks…">
+      </div>
+    </div>
+
+    <ul id="list"></ul>
+
+    <div class="empty-state" id="emptyState">
+      <span class="glyph">⌁</span>
+      <div>No tasks match this query.</div>
+      <div style="opacity:.6; margin-top:4px;">Commit a new task above to populate the board.</div>
+    </div>
+
+    <footer class="app-footer">
+      <span class="k">Enter</span> to commit · <span class="k">Click</span> checkbox to ship · drag cards to reorder
+    </footer>
+
+  </main>
+
+  <div class="toast-stack" id="toastStack"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ============================================================
+     STATE
+  ============================================================ */
+  const STORAGE_KEY = 'dev_tasks_console_v1';
+  const MUTE_KEY = 'dev_tasks_muted';
+
+  let tasks = loadTasks();
+  let filter = 'all';
+  let query = '';
+  let activePriority = 'mid';
+  let muted = localStorage.getItem(MUTE_KEY) === '1';
+
+  function loadTasks(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : seedTasks();
+    }catch(e){ return seedTasks(); }
+  }
+  function seedTasks(){
+    return [
+      { id: uid(), title: 'Set up CI pipeline', note: 'GitHub Actions + lint + test gate', tag: 'infra', priority: 'high', due: '', contact: '', done: false, created: Date.now(), reminded: {} },
+      { id: uid(), title: 'Write API docs', note: '', tag: 'docs', priority: 'low', due: '', contact: '', done: true, created: Date.now()-1000, reminded: {} },
+    ];
+  }
+  function saveTasks(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+  /* ============================================================
+     CONTACT VALIDATION (email or phone)
+  ============================================================ */
+  function classifyContact(value){
+    const v = (value||'').trim();
+    if(!v) return null;
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRe = /^\+?[0-9()\-.\s]{7,20}$/;
+    if(emailRe.test(v)) return { type:'email', value:v };
+    if(phoneRe.test(v)) return { type:'phone', value:v };
+    return { type:'unknown', value:v };
+  }
+
+  /* ============================================================
+     DOM REFS
+  ============================================================ */
+  const $ = (s) => document.querySelector(s);
+  const listEl = $('#list');
+  const emptyEl = $('#emptyState');
+  const titleInput = $('#taskTitle');
+  const noteInput = $('#taskNote');
+  const tagInput = $('#taskTag');
+  const dueInput = $('#taskDue');
+  const contactInput = $('#taskContact');
+  const addBtn = $('#addBtn');
+  const priorityPicker = $('#priorityPicker');
+  const filtersEl = $('#filters');
+  const searchInput = $('#searchInput');
+  const toastStack = $('#toastStack');
+  const muteBtn = $('#muteBtn');
+  const screenFlash = $('#screenFlash');
+  const statTotal = $('#statTotal');
+  const statActive = $('#statActive');
+  const statDone = $('#statDone');
+  const progressFill = $('#progressFill');
+  const progressLabel = $('#progressLabel');
+
+  muteBtn.textContent = muted ? '🔇' : '🔊';
+
+  /* ============================================================
+     SOUND ENGINE — synthesized with WebAudio, no external files
+  ============================================================ */
+  const SoundFX = (() => {
+    let ctx = null;
+    function getCtx(){
+      if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if(ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+    function envGain(ac, t0, peak, attack, decay){
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(peak, t0 + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + attack + decay);
+      return g;
+    }
+    function noiseBuffer(ac, dur){
+      const n = ac.sampleRate * dur;
+      const buf = ac.createBuffer(1, n, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for(let i=0;i<n;i++) d[i] = (Math.random()*2-1) * (1 - i/n);
+      return buf;
+    }
+
+    function save(){
+      if(muted) return;
+      const ac = getCtx();
+      const t0 = ac.currentTime;
+
+      const osc = ac.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, t0);
+      osc.frequency.exponentialRampToValueAtTime(1400, t0 + 0.09);
+      osc.frequency.exponentialRampToValueAtTime(820, t0 + 0.16);
+      const g1 = envGain(ac, t0, 0.18, 0.01, 0.18);
+      osc.connect(g1).connect(ac.destination);
+      osc.start(t0); osc.stop(t0 + 0.22);
+
+      const noise = ac.createBufferSource();
+      noise.buffer = noiseBuffer(ac, 0.18);
+      const hp = ac.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 2200;
+      const g2 = envGain(ac, t0, 0.12, 0.002, 0.15);
+      noise.connect(hp).connect(g2).connect(ac.destination);
+      noise.start(t0);
+
+      const sub = ac.createOscillator();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(120, t0);
+      sub.frequency.exponentialRampToValueAtTime(40, t0+0.12);
+      const g3 = envGain(ac, t0, 0.25, 0.005, 0.12);
+      sub.connect(g3).connect(ac.destination);
+      sub.start(t0); sub.stop(t0+0.14);
+    }
+
+    function complete(){
+      if(muted) return;
+      const ac = getCtx();
+      const t0 = ac.currentTime;
+      [523.25, 659.25, 783.99].forEach((f, i) => {
+        const osc = ac.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = f;
+        const start = t0 + i*0.07;
+        const g = envGain(ac, start, 0.13, 0.01, 0.28);
+        osc.connect(g).connect(ac.destination);
+        osc.start(start); osc.stop(start + 0.32);
+      });
+    }
+
+    function uncomplete(){
+      if(muted) return;
+      const ac = getCtx();
+      const t0 = ac.currentTime;
+      const osc = ac.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(500, t0);
+      osc.frequency.exponentialRampToValueAtTime(260, t0+0.15);
+      const g = envGain(ac, t0, 0.12, 0.01, 0.18);
+      osc.connect(g).connect(ac.destination);
+      osc.start(t0); osc.stop(t0+0.2);
+    }
+
+    function del(){
+      if(muted) return;
+      const ac = getCtx();
+      const t0 = ac.currentTime;
+      const noise = ac.createBufferSource();
+      noise.buffer = noiseBuffer(ac, 0.3);
+      const bp = ac.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.setValueAtTime(1800, t0);
+      bp.frequency.exponentialRampToValueAtTime(120, t0+0.28);
+      const g = envGain(ac, t0, 0.2, 0.005, 0.28);
+      noise.connect(bp).connect(g).connect(ac.destination);
+      noise.start(t0);
+
+      const osc = ac.createOscillator();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(400, t0);
+      osc.frequency.exponentialRampToValueAtTime(60, t0+0.25);
+      const g2 = envGain(ac, t0, 0.1, 0.005, 0.25);
+      osc.connect(g2).connect(ac.destination);
+      osc.start(t0); osc.stop(t0+0.28);
+    }
+
+    function tick(){
+      if(muted) return;
+      const ac = getCtx();
+      const t0 = ac.currentTime;
+      const osc = ac.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = 900;
+      const g = envGain(ac, t0, 0.05, 0.002, 0.05);
+      osc.connect(g).connect(ac.destination);
+      osc.start(t0); osc.stop(t0+0.06);
+    }
+
+    function alert(){
+      if(muted) return;
+      const ac = getCtx();
+      const t0 = ac.currentTime;
+      [880, 660].forEach((f,i) => {
+        const osc = ac.createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = f;
+        const start = t0 + i*0.13;
+        const g = envGain(ac, start, 0.09, 0.005, 0.1);
+        osc.connect(g).connect(ac.destination);
+        osc.start(start); osc.stop(start+0.12);
+      });
+    }
+
+    return { save, complete, uncomplete, del, tick, alert };
+  })();
+
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+    if(!muted) SoundFX.tick();
+  });
+
+  /* ============================================================
+     BACKGROUND CANVAS — falling code rain (tech/software theme)
+  ============================================================ */
+  const bgCanvas = $('#bg-canvas');
+  const bgCtx = bgCanvas.getContext('2d');
+  let bgW, bgH, columns, drops;
+  const glyphs = '01{}[]<>/=+-*;:_#$%&アイウエオ010101'.split('');
+
+  function resizeBg(){
+    bgW = bgCanvas.width = window.innerWidth;
+    bgH = bgCanvas.height = window.innerHeight;
+    const fontSize = 15;
+    columns = Math.floor(bgW / fontSize);
+    drops = new Array(columns).fill(0).map(()=> Math.random() * -50);
+  }
+  resizeBg();
+  window.addEventListener('resize', resizeBg);
+
+  function drawRain(){
+    bgCtx.fillStyle = 'rgba(5,7,10,0.08)';
+    bgCtx.fillRect(0,0,bgW,bgH);
+    bgCtx.font = '14px JetBrains Mono, monospace';
+    for(let i=0;i<columns;i++){
+      const text = glyphs[Math.floor(Math.random()*glyphs.length)];
+      const x = i * 15;
+      const y = drops[i] * 18;
+      const grad = Math.random() < 0.012;
+      bgCtx.fillStyle = grad ? 'rgba(180,140,255,0.55)' : 'rgba(95,240,255,0.16)';
+      bgCtx.fillText(text, x, y);
+      if(y > bgH && Math.random() > 0.975){ drops[i] = 0; }
+      drops[i]++;
+    }
+    requestAnimationFrame(drawRain);
+  }
+  requestAnimationFrame(drawRain);
+
+  /* ============================================================
+     FX CANVAS — lightning burst + particles on save/delete
+  ============================================================ */
+  const fxCanvas = $('#fx-canvas');
+  const fxCtx = fxCanvas.getContext('2d');
+  function resizeFx(){
+    fxCanvas.width = window.innerWidth;
+    fxCanvas.height = window.innerHeight;
+  }
+  resizeFx();
+  window.addEventListener('resize', resizeFx);
+
+  let particles = [];
+  let bolts = [];
+
+  function spawnLightning(x, y, color){
+    const count = 5 + Math.floor(Math.random()*3);
+    for(let i=0;i<count;i++){
+      const angle = (Math.PI*2 * i / count) + (Math.random()*0.5 - 0.25);
+      const len = 60 + Math.random()*70;
+      const segs = [];
+      let cx = x, cy = y;
+      const steps = 6;
+      for(let s=0;s<steps;s++){
+        const dist = len/steps;
+        cx += Math.cos(angle) * dist + (Math.random()*16-8);
+        cy += Math.sin(angle) * dist + (Math.random()*16-8);
+        segs.push({x:cx,y:cy});
+      }
+      bolts.push({ x0:x, y0:y, segs, life:1, color });
+    }
+  }
+
+  function spawnParticles(x, y, color, count=26){
+    for(let i=0;i<count;i++){
+      const angle = Math.random()*Math.PI*2;
+      const speed = 1.5 + Math.random()*4.5;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle)*speed,
+        vy: Math.sin(angle)*speed - 1,
+        life: 1,
+        decay: 0.012 + Math.random()*0.02,
+        size: 1.5 + Math.random()*2.5,
+        color
+      });
+    }
+  }
+
+  function fxLoop(){
+    fxCtx.clearRect(0,0,fxCanvas.width, fxCanvas.height);
+
+    bolts.forEach(b => {
+      fxCtx.save();
+      fxCtx.globalAlpha = Math.max(b.life, 0);
+      fxCtx.strokeStyle = b.color;
+      fxCtx.shadowColor = b.color;
+      fxCtx.shadowBlur = 14;
+      fxCtx.lineWidth = 2;
+      fxCtx.beginPath();
+      fxCtx.moveTo(b.x0, b.y0);
+      b.segs.forEach(p => fxCtx.lineTo(p.x, p.y));
+      fxCtx.stroke();
+      fxCtx.restore();
+      b.life -= 0.07;
+    });
+    bolts = bolts.filter(b => b.life > 0);
+
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.06;
+      p.life -= p.decay;
+      fxCtx.globalAlpha = Math.max(p.life,0);
+      fxCtx.fillStyle = p.color;
+      fxCtx.shadowColor = p.color;
+      fxCtx.shadowBlur = 8;
+      fxCtx.fillRect(p.x, p.y, p.size, p.size);
+    });
+    fxCtx.globalAlpha = 1;
+    particles = particles.filter(p => p.life > 0);
+
+    requestAnimationFrame(fxLoop);
+  }
+  requestAnimationFrame(fxLoop);
+
+  function screenFlashAt(x, y){
+    screenFlash.style.setProperty('--fx-x', x+'px');
+    screenFlash.style.setProperty('--fx-y', y+'px');
+    screenFlash.classList.add('show');
+    requestAnimationFrame(()=> {
+      screenFlash.classList.remove('show');
+    });
+  }
+
+  function cinematicBurst(targetEl, color){
+    const rect = targetEl.getBoundingClientRect();
+    const x = rect.left + rect.width/2;
+    const y = rect.top + rect.height/2;
+    spawnLightning(x, y, color);
+    spawnParticles(x, y, color);
+    screenFlashAt(x, y);
+  }
+
+  /* ============================================================
+     TOASTS
+  ============================================================ */
+  function toast(msg, type='', icon='⚡'){
+    const el = document.createElement('div');
+    el.className = 'toast' + (type ? ' '+type : '');
+    el.innerHTML = `<span class="bolt">${icon}</span><span></span>`;
+    el.querySelector('span:last-child').textContent = msg;
+    toastStack.appendChild(el);
+    setTimeout(()=>{
+      el.classList.add('out');
+      setTimeout(()=> el.remove(), 320);
+    }, 3200);
+  }
+
+  /* ============================================================
+     RENDER
+  ============================================================ */
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function fmtDue(dateStr){
+    if(!dateStr) return null;
+    const due = new Date(dateStr + 'T00:00:00');
+    const now = new Date(); now.setHours(0,0,0,0);
+    const diffDays = Math.round((due - now) / 86400000);
+    let cls = '';
+    let label;
+    if(diffDays < 0){ cls = 'overdue'; label = `Overdue ${Math.abs(diffDays)}d`; }
+    else if(diffDays === 0){ cls = 'soon'; label = 'Due today'; }
+    else if(diffDays <= 2){ cls = 'soon'; label = `Due in ${diffDays}d`; }
+    else { label = due.toLocaleDateString(undefined, {month:'short', day:'numeric'}); }
+    return { cls, label };
+  }
+
+  function getFiltered(){
+    let list = [...tasks];
+    if(filter === 'active') list = list.filter(t => !t.done);
+    else if(filter === 'done') list = list.filter(t => t.done);
+    else if(filter === 'high') list = list.filter(t => t.priority === 'high' && !t.done);
+
+    if(query.trim()){
+      const q = query.trim().toLowerCase();
+      list = list.filter(t =>
+        t.title.toLowerCase().includes(q) ||
+        (t.note||'').toLowerCase().includes(q) ||
+        (t.tag||'').toLowerCase().includes(q) ||
+        (t.contact||'').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }
+
+  function render({ animateNewId=null } = {}){
+    const list = getFiltered();
+    listEl.innerHTML = '';
+    emptyEl.classList.toggle('show', list.length === 0);
+
+    list.forEach(t => {
+      const li = document.createElement('li');
+      li.className = 'card' + (t.done ? ' done' : '');
+      li.dataset.id = t.id;
+      li.dataset.priority = t.priority;
+      li.draggable = true;
+
+      const due = fmtDue(t.due);
+      const contact = classifyContact(t.contact);
+
+      li.innerHTML = `
+        <div class="check" data-action="toggle">${t.done ? '✓' : ''}</div>
+        <div class="card-body">
+          <p class="card-title"></p>
+          ${t.note ? `<p class="card-note"></p>` : ''}
+          <div class="card-meta">
+            ${due ? `<span class="meta-pill due ${due.cls}">${due.cls==='overdue'?'⚠':'🕐'} ${due.label}</span>` : ''}
+            ${t.tag ? `<span class="meta-pill tag">#${escapeHtml(t.tag)}</span>` : ''}
+            <span class="meta-pill" style="text-transform:capitalize;">${t.priority} priority</span>
+            ${contact ? `<span class="meta-pill contact" title="Reminder contact">${contact.type==='email'?'✉':'📱'} <span class="contact-val"></span></span>` : ''}
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn" data-action="edit" title="Edit">✎</button>
+          <button class="icon-btn danger" data-action="delete" title="Delete">🗑</button>
+        </div>
+      `;
+      li.querySelector('.card-title').textContent = t.title;
+      if(t.note) li.querySelector('.card-note').textContent = t.note;
+      if(contact) li.querySelector('.contact-val').textContent = contact.value;
+
+      if(t.id === animateNewId){
+        li.classList.add('materialize', 'flash-bright');
+        setTimeout(()=> li.classList.remove('flash-bright'), 600);
+      }
+
+      listEl.appendChild(li);
+    });
+
+    updateStats();
+  }
+
+  function updateStats(){
+    const total = tasks.length;
+    const done = tasks.filter(t=>t.done).length;
+    const active = total - done;
+    statTotal.textContent = total;
+    statActive.textContent = active;
+    statDone.textContent = done;
+    const pct = total ? Math.round((done/total)*100) : 0;
+    progressFill.style.width = pct + '%';
+    progressLabel.textContent = pct + '%';
+  }
+
+  /* ============================================================
+     ACTIONS
+  ============================================================ */
+  function addTask(){
+    const title = titleInput.value.trim();
+    if(!title){
+      titleInput.focus();
+      titleInput.style.borderColor = 'var(--danger)';
+      setTimeout(()=> titleInput.style.borderColor = '', 500);
+      return;
+    }
+
+    const contactRaw = contactInput.value.trim();
+    const contactCheck = classifyContact(contactRaw);
+    if(contactCheck && contactCheck.type === 'unknown'){
+      contactInput.style.borderColor = 'var(--danger)';
+      setTimeout(()=> contactInput.style.borderColor = '', 900);
+      toast('Enter a valid email or phone number', 'danger', '✕');
+      return;
+    }
+
+    const newTask = {
+      id: uid(),
+      title,
+      note: noteInput.value.trim(),
+      tag: tagInput.value.trim(),
+      priority: activePriority,
+      due: dueInput.value,
+      contact: contactRaw,
+      done: false,
+      created: Date.now(),
+      reminded: {}
+    };
+    tasks.unshift(newTask);
+    saveTasks();
+    render({ animateNewId: newTask.id });
+
+    requestAnimationFrame(()=> {
+      const el = listEl.querySelector(`[data-id="${newTask.id}"]`);
+      if(el) cinematicBurst(el, 'rgba(95,240,255,0.9)');
+    });
+    SoundFX.save();
+    toast('Task committed to the board', '', '⚡');
+
+    titleInput.value=''; noteInput.value=''; tagInput.value=''; dueInput.value=''; contactInput.value='';
+    titleInput.focus();
+  }
+
+  function toggleTask(id){
+    const t = tasks.find(x=>x.id===id);
+    if(!t) return;
+    t.done = !t.done;
+    saveTasks();
+    render();
+    const el = listEl.querySelector(`[data-id="${id}"]`);
+    if(t.done){
+      if(el) cinematicBurst(el, 'rgba(109,255,176,0.9)');
+      SoundFX.complete();
+      toast('Shipped! 🚀', 'ok', '✓');
+    } else {
+      SoundFX.uncomplete();
+    }
+  }
+
+  function deleteTask(id){
+    const el = listEl.querySelector(`[data-id="${id}"]`);
+    if(el){
+      cinematicBurst(el, 'rgba(255,93,108,0.9)');
+      el.classList.add('deleting');
+      SoundFX.del();
+      toast('Task deleted', 'danger', '✕');
+      setTimeout(()=>{
+        tasks = tasks.filter(t=>t.id!==id);
+        saveTasks();
+        render();
+      }, 420);
+    } else {
+      tasks = tasks.filter(t=>t.id!==id);
+      saveTasks();
+      render();
+    }
+  }
+
+  function editTask(id){
+    const t = tasks.find(x=>x.id===id);
+    if(!t) return;
+    const newTitle = prompt('Edit task title:', t.title);
+    if(newTitle === null) return;
+    const trimmed = newTitle.trim();
+    if(!trimmed) return;
+    t.title = trimmed;
+    saveTasks();
+    render();
+    SoundFX.tick();
+    toast('Task updated', '', '✎');
+  }
+
+  /* ============================================================
+     EXPIRATION REMINDERS
+     — checks due dates and surfaces an in-app + (optional) browser
+       notification when a task is due soon or overdue. Each stage
+       ("soon" / "overdue") is only ever fired once per task so the
+       user isn't spammed on every re-render.
+  ============================================================ */
+  let notifyPermissionAsked = false;
+
+  function ensureNotifyPermission(){
+    if(!('Notification' in window)) return;
+    if(notifyPermissionAsked) return;
+    notifyPermissionAsked = true;
+    if(Notification.permission === 'default'){
+      Notification.requestPermission();
+    }
+  }
+
+  function sendReminder(task, stage){
+    const dueInfo = fmtDue(task.due);
+    const label = stage === 'overdue' ? 'Task overdue' : 'Task due soon';
+    const body = `"${task.title}"${dueInfo ? ' — ' + dueInfo.label : ''}${task.contact ? ' · reminder for ' + task.contact : ''}`;
+
+    toast(`${label}: ${task.title}`, stage === 'overdue' ? 'danger' : '', stage === 'overdue' ? '⚠' : '🕐');
+    SoundFX.alert();
+
+    if('Notification' in window && Notification.permission === 'granted'){
+      try{
+        new Notification(`DEV//TASKS — ${label}`, {
+          body,
+          icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" rx="18" fill="%2305070a"/%3E%3Ctext x="50" y="66" font-size="58" text-anchor="middle" fill="%235ff0ff" font-family="monospace"%3E%3C/%3E%3C/text%3E%3C/svg%3E'
+        });
+      }catch(e){ /* notifications not supported/blocked — toast already shown */ }
+    }
+  }
+
+  function checkExpirations(){
+    let changed = false;
+    const now = new Date(); now.setHours(0,0,0,0);
+
+    tasks.forEach(t => {
+      if(t.done || !t.due) return;
+      if(!t.reminded) t.reminded = {};
+
+      const due = new Date(t.due + 'T00:00:00');
+      const diffDays = Math.round((due - now) / 86400000);
+
+      if(diffDays < 0 && !t.reminded.overdue){
+        sendReminder(t, 'overdue');
+        t.reminded.overdue = true;
+        changed = true;
+      } else if(diffDays >= 0 && diffDays <= 1 && !t.reminded.soon){
+        sendReminder(t, 'soon');
+        t.reminded.soon = true;
+        changed = true;
+      }
+    });
+
+    if(changed) saveTasks();
+  }
+
+  /* ============================================================
+     EVENTS
+  ============================================================ */
+  addBtn.addEventListener('click', addTask);
+  [titleInput, tagInput, contactInput].forEach(inp => {
+    inp.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){ e.preventDefault(); addTask(); }
+    });
+  });
+  noteInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); addTask(); }
+  });
+
+  priorityPicker.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    priorityPicker.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    activePriority = chip.dataset.p;
+    SoundFX.tick();
+  });
+
+  filtersEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if(!btn) return;
+    filtersEl.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    filter = btn.dataset.f;
+    render();
+  });
+
+  searchInput.addEventListener('input', (e) => {
+    query = e.target.value;
+    render();
+  });
+
+  listEl.addEventListener('click', (e) => {
+    const card = e.target.closest('.card');
+    if(!card) return;
+    const id = card.dataset.id;
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if(action === 'toggle') toggleTask(id);
+    else if(action === 'delete') deleteTask(id);
+    else if(action === 'edit') editTask(id);
+  });
+
+  /* ask for notification permission on first meaningful interaction */
+  ['click','keydown'].forEach(evt => document.addEventListener(evt, ensureNotifyPermission, { once:true }));
+
+  /* drag to reorder */
+  let dragId = null;
+  listEl.addEventListener('dragstart', (e) => {
+    const card = e.target.closest('.card');
+    if(!card) return;
+    dragId = card.dataset.id;
+    card.classList.add('dragging');
+  });
+  listEl.addEventListener('dragend', (e) => {
+    const card = e.target.closest('.card');
+    if(card) card.classList.remove('dragging');
+    listEl.querySelectorAll('.card').forEach(c=>c.classList.remove('drag-over'));
+  });
+  listEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const card = e.target.closest('.card');
+    if(!card || card.dataset.id === dragId) return;
+    listEl.querySelectorAll('.card').forEach(c=>c.classList.remove('drag-over'));
+    card.classList.add('drag-over');
+  });
+  listEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const card = e.target.closest('.card');
+    if(!card || !dragId || card.dataset.id === dragId) return;
+    const fromIdx = tasks.findIndex(t=>t.id===dragId);
+    const toIdx = tasks.findIndex(t=>t.id===card.dataset.id);
+    if(fromIdx === -1 || toIdx === -1) return;
+    const [moved] = tasks.splice(fromIdx,1);
+    tasks.splice(toIdx,0,moved);
+    saveTasks();
+    render();
+    SoundFX.tick();
+  });
+
+  /* auto-grow textarea */
+  noteInput.addEventListener('input', () => {
+    noteInput.style.height = 'auto';
+    noteInput.style.height = noteInput.scrollHeight + 'px';
+  });
+
+  /* refresh due-date urgency labels + check expirations periodically */
+  setInterval(() => { render(); checkExpirations(); }, 60000);
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+  render();
+  checkExpirations();
+})();
+</script>
+</body>
+</html>
