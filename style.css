@@ -511,3 +511,141 @@ select.field{ cursor:pointer; }
   .meta-pill.contact{ max-width:160px; }
   .meta-pill.contact .contact-val{ max-width:120px; }
 }
+
+/* ============================================================
+   SUPPORT / DONATIONS PANEL
+   ============================================================ */
+.support-panel{
+  background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px;
+  margin-top:38px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 18px 40px -24px rgba(0,0,0,.7);
+}
+.support-panel::after{
+  content:'';
+  position:absolute; inset:0;
+  background:radial-gradient(ellipse 65% 90% at 100% 0%, rgba(180,140,255,.09), transparent 60%);
+  pointer-events:none;
+}
+
+.support-titlebar{
+  display:flex; align-items:center; gap:8px;
+  font-family:var(--mono); font-size:11px; color:var(--muted);
+  margin-bottom:14px; letter-spacing:.08em;
+  position:relative;
+}
+.support-titlebar .path{ margin-left:6px; color:var(--muted-2); }
+
+.support-intro{
+  font-family:var(--mono); font-size:13px; color:var(--muted);
+  margin:0 0 18px; line-height:1.65;
+  position:relative;
+}
+.support-glyph{ color:var(--ok); margin-right:6px; }
+
+.support-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+  gap:14px;
+  position:relative;
+}
+
+.pay-card{
+  position:relative;
+  background:var(--bg-grid);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius-sm);
+  padding:15px 16px 14px;
+  transition:border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  overflow:hidden;
+}
+.pay-card::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--accent-dim);
+}
+.pay-card[data-method="usdt"]::before{ background:var(--accent2); box-shadow:0 0 10px var(--accent2); }
+.pay-card[data-method="payoneer"]::before{ background:var(--accent); box-shadow:0 0 10px var(--accent); }
+.pay-card[data-method="bank"]::before{ background:var(--ok); box-shadow:0 0 10px var(--ok); }
+
+.pay-card:hover{
+  border-color:var(--muted-2);
+  transform:translateY(-2px);
+  box-shadow:0 14px 30px -20px rgba(0,0,0,.8);
+}
+
+.pay-card-top{ display:flex; align-items:center; gap:11px; margin-bottom:8px; }
+
+.pay-icon-badge{
+  flex:0 0 auto;
+  width:38px; height:38px;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg, var(--panel-2), var(--bg-grid));
+  border:1px solid var(--border-soft);
+  transition:box-shadow .2s ease, transform .2s ease;
+}
+.pay-icon-badge svg{ width:20px; height:20px; display:block; }
+.pay-card:hover .pay-icon-badge{ transform:scale(1.05); }
+
+.pay-card[data-method="usdt"] .pay-icon-badge{
+  color:var(--accent2);
+  box-shadow:inset 0 0 0 1px rgba(180,140,255,.3), 0 0 14px -5px var(--accent2);
+}
+.pay-card[data-method="payoneer"] .pay-icon-badge{
+  color:var(--accent);
+  box-shadow:inset 0 0 0 1px rgba(95,240,255,.3), 0 0 14px -5px var(--accent);
+}
+.pay-card[data-method="bank"] .pay-icon-badge{
+  color:var(--ok);
+  box-shadow:inset 0 0 0 1px rgba(109,255,176,.3), 0 0 14px -5px var(--ok);
+}
+
+.pay-name{ font-family:var(--mono); font-weight:700; font-size:14px; color:var(--text); letter-spacing:.02em; }
+.pay-sub{
+  font-family:var(--mono); font-size:11.5px; color:var(--muted);
+  margin:0 0 10px; letter-spacing:.02em; word-break:break-word;
+}
+
+.pay-value-row{
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg); border:1px solid var(--border-soft);
+  border-radius:var(--radius-sm); padding:8px 10px;
+}
+.pay-value{
+  flex:1; min-width:0;
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  word-break:break-all; line-height:1.4;
+}
+.pay-copy{
+  flex:0 0 auto;
+  font-family:var(--mono); font-size:11px; font-weight:600;
+  background:transparent; border:1px solid var(--border-soft); color:var(--muted);
+  padding:6px 9px; border-radius:6px; cursor:pointer;
+  white-space:nowrap;
+  transition:all .18s ease;
+}
+.pay-copy:hover{ color:var(--text); border-color:var(--accent); }
+.pay-copy:active{ transform:scale(.94); }
+.pay-copy.copied{ color:var(--ok); border-color:var(--ok); }
+
+.pay-note{
+  margin:9px 0 0; font-family:var(--mono); font-size:10.5px; color:var(--warn);
+  letter-spacing:.02em; line-height:1.5;
+}
+
+.support-footnote{
+  margin:16px 0 0; text-align:center;
+  font-family:var(--mono); font-size:11px; color:var(--muted-2);
+  letter-spacing:.05em; position:relative;
+}
+
+@media (max-width:640px){
+  .support-panel{ padding:16px 14px; margin-top:30px; }
+  .support-grid{ grid-template-columns:1fr; }
+  .pay-value{ font-size:11.5px; }
+  .pay-copy{ padding:6px 8px; font-size:10.5px; }
+}
